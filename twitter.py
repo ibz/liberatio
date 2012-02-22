@@ -4,13 +4,14 @@ from collections import defaultdict
 import datetime
 import sqlite3
 import sys
+import time
 
 def show_month_counts(db_name):
     conn = sqlite3.connect(db_name)
     c = conn.execute("SELECT created_at FROM tweets")
     counts = defaultdict(int)
     for created_at, in c:
-        created_at = datetime.datetime.fromtimestamp(created_at)
+        created_at = datetime.datetime.fromtimestamp(time.mktime(time.gmtime(created_at)))
         counts['%s-%02d' % (created_at.year, created_at.month)] += 1
     conn.close()
 
