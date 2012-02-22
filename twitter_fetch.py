@@ -47,7 +47,7 @@ def user_timeline_file(filename):
         lines = f.readlines()
         FILE_PARSED = True
 
-        if lines[0] == "{":
+        if lines[0][0] == "{":
             # file dumped previously by me
             return [cleanup_status(eval(line.strip())) for line in lines]
         elif lines[0].startswith("var cirip = "):
@@ -55,7 +55,7 @@ def user_timeline_file(filename):
             content = lines[0][lines[0].index("["):-1]
             tweets = simplejson.loads(content)
             return [{'id': None, 'user': {'id': None}, 'created_at': parse_twitter_date(t['created_at']), 'text': t['text'], 'in_reply_to_status_id': None} for t in tweets if t['source'] == "twitter2cirip"]
-        else:
+        elif lines[0].startswith("User,"):
             # file from Tweet Scan
             csv_reader = csv.reader(lines[1:])
             return [{'id': int(row[5]), 'user': {'id': None}, 'created_at': datetime.datetime.fromtimestamp(int(row[2])), 'text': row[1].decode('utf-8'), 'in_reply_to_status_id': None} for row in csv_reader]
