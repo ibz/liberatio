@@ -35,17 +35,18 @@ def user_timeline(screen_name, page, since_id=None, count=200):
         response.close()
 
 FILE_PARSED = False
-def user_timeline_stdin():
+def user_timeline_file(filename):
     """i use this function to parse a file that i dumped a while back; normally everything should go to sqlite directly"""
     global FILE_PARSED
     if FILE_PARSED:
         return []
-    lines = sys.stdin.readlines()
-    FILE_PARSED = True
-    return [cleanup_status(eval(line.strip())) for line in lines]
+    with file(filename) as f:
+        lines = f.readlines()
+        FILE_PARSED = True
+        return [cleanup_status(eval(line.strip())) for line in lines]
 
-def main(screen_name=None):
-    db_name = "twitter_%s.db" % screen_name
+def main(screen_name=None, input_file=None, output_file=None):
+    db_name = output_file or ("twitter_%s.db" % screen_name)
 
     if not os.path.exists(db_name):
         create_db(db_name)
@@ -62,7 +63,7 @@ def main(screen_name=None):
 
         try:
             if screen_name is None:
-                tweets = user_timeline_stdin()
+                tweets = user_timeline_file(input_file)
             else:
                 tweets = user_timeline(screen_name, page, since_id=since_id)
             fail_count = 0
@@ -99,8 +100,8 @@ def main(screen_name=None):
     conn.close()
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        # read from stdin
-        main()
+    if len(sys.argv) == 3:
+        # read from file
+        main(input_file=sys.argv[1], output_file=sys.argv[2])
     else:
-        main(sys.argv[1])
+        main(screen_name=sys.argv[1])
