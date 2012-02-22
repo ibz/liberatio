@@ -15,11 +15,14 @@ import traceback
 
 def create_db(db_name):
     conn = sqlite3.connect(db_name)
-    conn.execute("CREATE TABLE tweets (id INTEGER UNIQUE NOT NULL, user_id INTEGER, is_retweet INTEGER NOT NULL, created_at INTEGER NOT NULL, text TEXT NOT NULL, in_reply_to_status_id INTEGER, coordinates TEXT, geo TEXT, place TEXT, source TEXT)")
+    conn.execute("CREATE TABLE tweets (id INTEGER PRIMARY KEY, twitter_id INTEGER UNIQUE, user_id INTEGER, is_retweet INTEGER NOT NULL, created_at INTEGER NOT NULL, text TEXT NOT NULL, in_reply_to_status_id INTEGER, coordinates TEXT, geo TEXT, place TEXT, source TEXT)")
     conn.close()
 
+def parse_twitter_date(d):
+    return datetime.datetime.fromtimestamp(calendar.timegm(rfc822.parsedate(d)))
+
 def cleanup_status(status):
-    status['created_at'] = datetime.datetime.fromtimestamp(calendar.timegm(rfc822.parsedate(status['created_at'])))
+    status['created_at'] = parse_twitter_date(status['created_at'])
     if 'retweeted_status' in status:
         status['retweeted_status'] = cleanup_status(status['retweeted_status'])
     return status
@@ -47,6 +50,11 @@ def user_timeline_file(filename):
         if lines[0] == "{":
             # file dumped previously by me
             return [cleanup_status(eval(line.strip())) for line in lines]
+        elif lines[0].startswith("var cirip = "):
+            # file exported from cirip.ro
+            content = lines[0][lines[0].index("["):-1]
+            tweets = simplejson.loads(content)
+            return [{'id': None, 'user': {'id': None}, 'created_at': parse_twitter_date(t['created_at']), 'text': t['text'], 'in_reply_to_status_id': None} for t in tweets if t['source'] == "twitter2cirip"]
         else:
             # file from Tweet Scan
             csv_reader = csv.reader(lines[1:])
@@ -91,7 +99,7 @@ def main(screen_name=None, input_file=None, output_file=None):
                 tweet = tweet['retweeted_status']
 
             try:
-                conn.execute("INSERT INTO tweets (id, user_id, is_retweet, created_at, text, in_reply_to_status_id, coordinates, geo, place, source) "
+                conn.execute("INSERT INTO tweets (twitter_id, user_id, is_retweet, created_at, text, in_reply_to_status_id, coordinates, geo, place, source) "
                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                              (tweet['id'], tweet['user']['id'], is_retweet, int(time.mktime(tweet['created_at'].timetuple())), tweet['text'], tweet['in_reply_to_status_id'],
                               simplejson.dumps(tweet['coordinates']) if tweet.get('coordinates') else None, simplejson.dumps(tweet['geo']) if tweet.get('geo') else None, simplejson.dumps(tweet['place']) if tweet.get('place') else None, tweet.get('source')))
