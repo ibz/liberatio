@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import calendar
+import csv
 import datetime
 import os
 import rfc822
@@ -14,7 +15,7 @@ import traceback
 
 def create_db(db_name):
     conn = sqlite3.connect(db_name)
-    conn.execute("CREATE TABLE tweets (id INTEGER UNIQUE NOT NULL, user_id INTEGER NOT NULL, is_retweet INTEGER NOT NULL, created_at INTEGER NOT NULL, text TEXT NOT NULL, in_reply_to_status_id INTEGER, coordinates TEXT, geo TEXT, place TEXT, source TEXT NOT NULL)")
+    conn.execute("CREATE TABLE tweets (id INTEGER UNIQUE NOT NULL, user_id INTEGER, is_retweet INTEGER NOT NULL, created_at INTEGER NOT NULL, text TEXT NOT NULL, in_reply_to_status_id INTEGER, coordinates TEXT, geo TEXT, place TEXT, source TEXT)")
     conn.close()
 
 def cleanup_status(status):
@@ -36,14 +37,20 @@ def user_timeline(screen_name, page, since_id=None, count=200):
 
 FILE_PARSED = False
 def user_timeline_file(filename):
-    """i use this function to parse a file that i dumped a while back; normally everything should go to sqlite directly"""
     global FILE_PARSED
     if FILE_PARSED:
         return []
     with file(filename) as f:
         lines = f.readlines()
         FILE_PARSED = True
-        return [cleanup_status(eval(line.strip())) for line in lines]
+
+        if lines[0] == "{":
+            # file dumped previously by me
+            return [cleanup_status(eval(line.strip())) for line in lines]
+        else:
+            # file from Tweet Scan
+            csv_reader = csv.reader(lines[1:])
+            return [{'id': int(row[5]), 'user': {'id': None}, 'created_at': datetime.datetime.fromtimestamp(int(row[2])), 'text': row[1].decode('utf-8'), 'in_reply_to_status_id': None} for row in csv_reader]
 
 def main(screen_name=None, input_file=None, output_file=None):
     db_name = output_file or ("twitter_%s.db" % screen_name)
@@ -87,7 +94,7 @@ def main(screen_name=None, input_file=None, output_file=None):
                 conn.execute("INSERT INTO tweets (id, user_id, is_retweet, created_at, text, in_reply_to_status_id, coordinates, geo, place, source) "
                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                              (tweet['id'], tweet['user']['id'], is_retweet, int(time.mktime(tweet['created_at'].timetuple())), tweet['text'], tweet['in_reply_to_status_id'],
-                              simplejson.dumps(tweet['coordinates']) if tweet['coordinates'] else None, simplejson.dumps(tweet['geo']) if tweet['geo'] else None, simplejson.dumps(tweet['place']) if tweet['place'] else None, tweet['source']))
+                              simplejson.dumps(tweet['coordinates']) if tweet.get('coordinates') else None, simplejson.dumps(tweet['geo']) if tweet.get('geo') else None, simplejson.dumps(tweet['place']) if tweet.get('place') else None, tweet.get('source')))
             except sqlite3.IntegrityError:
                 pass
 
