@@ -37,7 +37,7 @@ def main(screen_name, db_name):
 
     conn = sqlite3.connect(db_name)
 
-    c = conn.execute("SELECT max(id) FROM tweets")
+    c = conn.execute("SELECT max(twitter_id) FROM tweets")
     since_id = c.fetchall()[0][0]
 
     page = 1
