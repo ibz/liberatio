@@ -18,8 +18,10 @@ def cleanup_status(status):
         status['retweeted_status'] = cleanup_status(status['retweeted_status'])
     return status
 
-def user_timeline(screen_name, page, since_id=None, count=200):
-    params = {'screen_name': screen_name, 'page': page, 'count': 200, 'trim_user': 1, 'include_rts': 1, 'exclude_replies': 0}
+API_PAGE_SIZE = 200
+
+def user_timeline(screen_name, page, since_id=None):
+    params = {'screen_name': screen_name, 'page': page, 'count': API_PAGE_SIZE, 'trim_user': 1, 'include_rts': 1, 'exclude_replies': 0}
     if since_id:
         params['since_id'] = since_id
 
@@ -76,6 +78,9 @@ def main(screen_name, db_name):
             conn.commit()
 
         sys.stderr.write("saved %s tweets.\n" % saved_tweets)
+
+        if len(tweets) < API_PAGE_SIZE:
+            break
 
         time.sleep(25 * (fail_count + 1))
 
