@@ -57,6 +57,8 @@ def main(screen_name, db_name):
         if not tweets:
             break
 
+        saved_tweets = 0
+
         for tweet in tweets:
             is_retweet = 'retweeted_status' in tweet
             if is_retweet:
@@ -67,10 +69,13 @@ def main(screen_name, db_name):
                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                              (tweet['id'], tweet['user']['id'], is_retweet, int(time.mktime(tweet['created_at'].timetuple())), tweet['text'], tweet['in_reply_to_status_id'],
                               simplejson.dumps(tweet['coordinates']) if tweet.get('coordinates') else None, simplejson.dumps(tweet['geo']) if tweet.get('geo') else None, simplejson.dumps(tweet['place']) if tweet.get('place') else None, tweet.get('source')))
+                saved_tweets += 1
             except sqlite3.IntegrityError:
                 pass
 
             conn.commit()
+
+        sys.stderr.write("saved %s tweets.\n" % saved_tweets)
 
         time.sleep(25 * (fail_count + 1))
 
