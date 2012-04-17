@@ -10,5 +10,5 @@ if __name__ == '__main__':
             print i
             picture = simplejson.loads(line)
             with file("inst_pics/%s.jpg" % picture['id'], "w") as f:
-                content = urllib2.urlopen(picture['images']['low_resolution']['url']).read()
+                content = urllib2.urlopen(picture['images']['standard_resolution']['url']).read()
                 f.write(content)
