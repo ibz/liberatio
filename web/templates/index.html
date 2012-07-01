@@ -1,0 +1,90 @@
+$def with (moments)
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/themes/smoothness/jquery-ui.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.js"></script>
+<script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.1/jquery.dataTables.min.js"></script>
+<script type="text/javascript">
+    J = jQuery;
+
+    (function(J) {
+        J.fn.dataTableExt.oApi.fnGetColumnData = function (oSettings, iColumn) {
+            var aiRows = oSettings.aiDisplay;
+
+            var asResultData = new Array();
+
+            for (var i = 0, c = aiRows.length; i < c; i++) {
+                iRow = aiRows[i];
+                var aData = this.fnGetData(iRow);
+                var sValue = aData[iColumn];
+
+                if (sValue == "" || jQuery.inArray(sValue, asResultData) > -1) {
+                    continue;
+                }
+
+                asResultData.push(sValue);
+            }
+
+            return asResultData;
+        }
+    }(jQuery));
+
+    function fnCreateSelect(aData) {
+        var r = '<select><option value=""></option>', i, iLen = aData.length;
+        for (i = 0; i < iLen; i++) {
+            r += '<option value="' + aData[i] + '">' + aData[i] + '</option>';
+        }
+        return r + '</select>';
+    }
+
+    J(document).ready(function() {
+        var table = J('#moments').dataTable({
+            "bJQueryUI": true,
+            "sDom": 'R<"H"lfri>',
+            "bPaginate": false,
+            "bLengthChange": false,
+            "bFilter": true,
+            "bSort": false,
+            "bInfo": true,
+            "bAutoWidth": true,
+        });
+
+        J("thead th").each(function (i) {
+            if (J(this).hasClass('type') || J(this).hasClass('country') || J(this).hasClass('city')) {
+                this.innerHTML = fnCreateSelect(table.fnGetColumnData(i));
+                J('select', this).change(function () { table.fnFilter(J(this).val(), i); });
+            }
+        });
+    });
+</script>
+
+</head>
+
+<body>
+<table id="moments">
+    <thead>
+        <tr>
+            <th class="type"></th>
+            <th></th>
+            <th class="country"></th>
+            <th class="city"></th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    $for moment in moments:
+        <tr>
+            <td>$:(moment.get('type', "?"))</td>
+            <td><nobr>$:(moment.get('created_s'))</nobr></td>
+            <td>$:(moment.get('location', {}).get('country', "?"))</td>
+            <td>$:(moment.get('location', {}).get('city'))</td>
+            <td>$:(moment.get('headline'))</td>
+        </tr>
+    </tbody>
+</table>
+</body>
+</html>
