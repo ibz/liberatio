@@ -1,0 +1,4 @@
+
+PATH_USERNAME = ""
+PATH_PASSWORD = ""
+PATH_USER_ID = "" # run ./path_fetch.py -s "name" to search for your user and find out the user ID
